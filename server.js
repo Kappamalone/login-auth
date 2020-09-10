@@ -68,14 +68,12 @@ app.post('/signUp',async (req,res) => {
 })
 
 app.post('/login',async (req,res) => {
+  console.log(req.body)
   //post data to authentication server for tokens
   const freq = http.request(foptions, (res) => {
     res.setEncoding('utf8');
     res.on('data', (chunk) => {
         console.log(`BODY: ${chunk}`);
-    });
-    res.on('end', () => {
-        console.log('No more data in response.');
     });
   });
 

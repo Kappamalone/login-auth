@@ -15,6 +15,9 @@ app.use(express.static('public'));
 app.use(bodyParser.json());
 mongoDBSetup();
 
+const accessExp = '15m';
+const refreshExp = '7d';
+
 
 /*===========POST REQUESTS===========*/
 app.post('/login',async (req,res) => {
@@ -22,7 +25,6 @@ app.post('/login',async (req,res) => {
     console.log(req.body);
     //checking if the user has the correct credentials
     let admins = require('./adminLogins.json').adminLogins
-    console.log(admins)
     let isAdmin = false;
     let status = 403;
 
@@ -30,6 +32,7 @@ app.post('/login',async (req,res) => {
     for (const admin of admins){
       if (req.body.email === admin.email && req.body.pass === admin.pass){
         isAdmin = true
+        status = 200;
       }
     }
 
@@ -41,12 +44,31 @@ app.post('/login',async (req,res) => {
       }  
     }
 
-    //user is authenticated: therefore respond authenticated response
-    if (status === 200) {
-      res.json({admin: isAdmin})
+    //responding with access and refresh token using email and admin as payloads
+    if (status === 200){
+      //access token generation
+      let access_token = generateToken({email: req.body.email, admin: isAdmin}, process.env.ACCESS_TOKEN_SECRET_KEY,accessExp)
+
+      //refresh token generation
+      let refresh_token = generateToken({email: req.body.email, admin: isAdmin}, process.env.REFRESH_TOKEN_SECRET_KEY,refreshExp)
+
+      res.json({access_token: access_token,refresh_token: refresh_token})
     } else {
       res.sendStatus(status)
     }
+})
+
+app.post('/token',async (req,res) => {
+  console.log(req.headers)
+  const header = req.headers.authorization;
+  const refresh_token = header && header.split(' ')[1];
+
+  //Checks if refresh_token is valid, and sends an access token from information
+  //obtained from the refresh token
+  if (refresh_token){
+    let user = await jwt.verify(refresh_token,process.env.REFRESH_TOKEN_SECRET_KEY)
+    res.json({access_token: generateToken({email:user.email, admin: user.admin},process.env.ACCESS_TOKEN_SECRET_KEY,accessExp)})
+  }
 })
 
 /*===========MONGO SETUP AND FUNCTIONS===========*/
@@ -60,7 +82,7 @@ function mongoDBSetup() {
 }
 
 function generateToken(user,secret,expTime) {
-    return jwt.sign(user, secret, { expiresIn: expTime })
+    return jwt.sign(user, secret, { expiresIn: expTime });
 }
 
 app.listen(port,() => {
