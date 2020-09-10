@@ -15,6 +15,17 @@ app.use(express.static('public'));
 app.use(bodyParser.json());
 mongoDBSetup();
 
+const foptions = {
+  hostname: 'localhost',
+  port: 4000,
+  path: '/login',
+  method: 'POST',
+  headers: {
+      'content-type': 'application/json',
+      'accept': 'application/json'
+  }
+};
+
 /*===========ROUTING===========*/
 app.get('/',(req,res) => {
   res.redirect(307,'/register');
@@ -58,6 +69,29 @@ app.post('/signUp',async (req,res) => {
 
 app.post('/login',async (req,res) => {
   //post data to authentication server for tokens
+  const freq = http.request(foptions, (res) => {
+    res.setEncoding('utf8');
+    res.on('data', (chunk) => {
+        console.log(`BODY: ${chunk}`);
+    });
+    res.on('end', () => {
+        console.log('No more data in response.');
+    });
+  });
+
+  //response from auth server
+  freq.on('data',(body) => {
+    console.log(body)
+  })
+
+  freq.on('error', (e) => {
+    console.error(`problem with request: ${e.message}`);
+  });
+
+  // write data to request body
+  freq.write(JSON.stringify(req.body));
+  freq.end();
+  
   
 })
 

@@ -1,0 +1,12 @@
+{
+    "adminLogins": [
+        {
+            "email": "admin@admin",
+            "pass": "123"
+        },
+        {
+            "email": "admin2@admin",
+            "pass": "123"
+        }
+    ]
+}

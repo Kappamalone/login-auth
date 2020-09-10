@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
+const fs = require('fs')
 const user = require('./models/userModel');
 
 /*===========SETUP===========*/
@@ -17,17 +18,34 @@ mongoDBSetup();
 
 /*===========POST REQUESTS===========*/
 app.post('/login',async (req,res) => {
-    console.log('recieved')
-    console.log(req.body)
+    console.log('recieved');
+    console.log(req.body);
     //checking if the user has the correct credentials
-    let status = 403
-    let doc = await user.findOne({'email': req.body.email}).exec()
-    if (await bcrypt.compare(req.body.pass,doc.password)){
-      status = 200
+    let admins = require('./adminLogins.json').adminLogins
+    console.log(admins)
+    let isAdmin = false;
+    let status = 403;
+
+    //set admin privileges for certain logins
+    for (const admin of admins){
+      if (req.body.email === admin.email && req.body.pass === admin.pass){
+        isAdmin = true
+      }
     }
 
-    if (status === 200){
+    //attempts to find credentials in database
+    let doc = await user.findOne({'email': req.body.email}).exec()
+    if (doc){
+      if (await bcrypt.compare(req.body.pass,doc.password)){
+        status = 200;
+      }  
+    }
 
+    //user is authenticated: therefore respond authenticated response
+    if (status === 200) {
+      res.json({admin: isAdmin})
+    } else {
+      res.sendStatus(status)
     }
 })
 
