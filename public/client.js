@@ -14,9 +14,17 @@ function login(){
         },
         body: JSON.stringify({email: email, pass: pass}),
         redirect: 'follow'
-    }).then((res) => {
-        console.log(res.status)
-    }).catch(err => console.log(err))
+    }).then(res => {
+        //res.ok indicates if the login was successful, and if the refresh and 
+        //access token have been issued
+        if (res.redirected){
+            //go to protected page
+            window.location.href = res.url
+        } else {
+            alert('incorrect login')
+        }
+    })
+    .catch(err => console.log(err));
 }
 
 function signUp(){

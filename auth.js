@@ -59,8 +59,8 @@ app.post('/login',async (req,res) => {
 })
 
 app.post('/token',async (req,res) => {
-  console.log(req.headers)
-  const header = req.headers.authorization;
+  console.log(req.body)
+  const header = req.body.refresh_token;
   const refresh_token = header && header.split(' ')[1];
 
   //Checks if refresh_token is valid, and sends an access token from information

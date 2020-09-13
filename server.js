@@ -5,7 +5,9 @@ const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
+const cookieParser = require('cookie-parser')
 const http = require('http');
+
 const user = require('./models/userModel');
 
 /*===========SETUP===========*/
@@ -13,6 +15,7 @@ const app = express();
 const port = 3000;
 app.use(express.static('public'));
 app.use(bodyParser.json());
+app.use(cookieParser());
 mongoDBSetup();
 
 const foptions = {
@@ -26,6 +29,10 @@ const foptions = {
   }
 };
 
+/*===========CUSTOM MIDDLEWARE===========*/
+
+
+
 /*===========ROUTING===========*/
 app.get('/',(req,res) => {
   res.redirect(307,'/register');
@@ -38,6 +45,16 @@ app.get('/register',(req,res) => {
 app.get('/login',(req,res) => {
   res.sendFile(path.join(__dirname,'webpages','login.html'));
 })
+
+app.get('/protectedUser',(req,res) => {
+  res.sendFile(path.join(__dirname,'webpages','protectedUser.html'));
+})
+
+app.get('/admin',(req,res) => {
+  res.sendFile(path.join(__dirname,'webpages','admin.html'));
+})
+
+
 
 /*===========POST REQUESTS===========*/
 
@@ -62,28 +79,41 @@ app.post('/signUp',async (req,res) => {
       .save()
       .then(item => console.log(item))
       .catch(err => console.log(err))
-    
+
     res.redirect('/login')
   }
 })
 
+//Forwards login detais to auth server
 app.post('/login',async (req,res) => {
   console.log(req.body)
+
   //post data to authentication server for tokens
-  const freq = http.request(foptions, (res) => {
-    res.setEncoding('utf8');
-    res.on('data', (chunk) => {
-        console.log(`BODY: ${chunk}`);
+  const freq = http.request(foptions, (authRes) => {
+    authRes.setEncoding('utf8');
+    authRes.on('data', (chunk) => {
+
+      //response from auth server
+      if (!(chunk === 'Forbidden')){
+        let tokenData = JSON.parse(chunk)
+
+        //Set cookie data
+        res.cookie('access_token',tokenData.access_token,{httpOnly: true})
+        res.cookie('refresh_token',tokenData.refresh_token, {httpOnly: true})
+        
+        //depending on admin privileges, redirect to appropriate pages
+        if (jwt.decode(tokenData.refresh_token).admin === true){
+          res.redirect('/admin')
+        } else {
+          res.redirect('/protectedUser')
+        }
+      } else {
+        res.sendStatus(401)
+      }
     });
-  });
-
-  //response from auth server
-  freq.on('data',(body) => {
-    console.log(body)
-  })
-
-  freq.on('error', (e) => {
-    console.error(`problem with request: ${e.message}`);
+    res.on('error',(e) => {
+      console.log('Error', e)
+    })
   });
 
   // write data to request body
@@ -91,6 +121,29 @@ app.post('/login',async (req,res) => {
   freq.end();
   
   
+})
+
+//Forward refresh token to auth server for new access token
+app.post('/token',(req,res) => {
+  console.log(req.headers.authorization)
+  const freq = http.request(foptions, (authRes) => {
+    authRes.setEncoding('utf8');
+    authRes.on('data', (chunk) => {
+      //response from auth server for access token
+      if (!(chunk === 'Forbidden')){
+        let tokenData = JSON.parse(chunk)
+
+        res.cookie('refresh_token',tokenData.refresh_token, {httpOnly: true})
+        res.sendStatus(200)
+  }});
+    authRes.on('error',(e) => {
+      console.log('Error', e)
+    })
+  });
+
+  // write data to request body
+  freq.write(JSON.stringify({"refresh_token": req.headers.authorization}));
+  freq.end();
 })
 
 /*===========MONGO SETUP AND FUNCTIONS===========*/
