@@ -15,14 +15,13 @@ app.use(express.static('public'));
 app.use(bodyParser.json());
 mongoDBSetup();
 
-const accessExp = '15m';
+const accessExp = '5s';
 const refreshExp = '7d';
 
 
 /*===========POST REQUESTS===========*/
 app.post('/login',async (req,res) => {
-    console.log('recieved');
-    console.log(req.body);
+    console.log('recieved', req.body);
     //checking if the user has the correct credentials
     let admins = require('./adminLogins.json').adminLogins
     let isAdmin = false;
@@ -59,7 +58,7 @@ app.post('/login',async (req,res) => {
 })
 
 app.post('/token',async (req,res) => {
-  console.log(req.body)
+  console.log('token recieved')
   const header = req.body.refresh_token;
   const refresh_token = header && header.split(' ')[1];
 

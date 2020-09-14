@@ -19,7 +19,8 @@ function login(){
         //access token have been issued
         if (res.redirected){
             //go to protected page
-            window.location.href = res.url
+            console.log('should be a redirect')
+            window.location.href = res.url;
         } else {
             alert('incorrect login')
         }
