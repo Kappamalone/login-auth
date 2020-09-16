@@ -52,13 +52,17 @@ function authUser(req,res,next){
         console.log('attempting to obtain access token')
         //TODO: if successful access token obtained, then 
         //redirect back to same login to authenticate
-        let successfulRefresh = refreshToken(res,req.cookies.refreshToken);
-        console.log(req.cookies)
+        //let oldToken = req.cookies.refresh_token;
+        //let newToken = refreshToken(res,req.cookies.refresh_token);
 
+        //console.log(oldToken === newToken)
+        let refreshRequest = refreshToken(req.cookies.refresh_token);
+        setTimeout(doSomething,400)
       } else {
         req.userDetails = user;
-      next()
       }
+
+      next()
     }) 
   } else {
     res.sendStatus(403)
@@ -213,18 +217,20 @@ function mongoDBSetup() {
 }
 
 //TODO: Figure out why the request isn't properly being made
-function refreshToken(res,refresh_token){
+function refreshToken(refresh_token){
+  console.log(refresh_token)
   const freq = http.request(tokenOptions, (authRes) => {
     authRes.setEncoding('utf8');
     authRes.on('data', (chunk) => {
       //response from auth server for access token
+      console.log('chunk data ',chunk)
       if (!(chunk === 'Forbidden')){
-        let tokenData = JSON.parse(chunk)
-        console.log('data',tokenData)
-        res.cookie('access_token','please change', {httpOnly: true})
+        let tokenData = JSON.parse(chunk).access_token;
+        return tokenData
     } else {
       console.log('whoops')
     }
+    return false
   });
     authRes.on('error',(e) => {
       console.log('Error', e)
@@ -234,6 +240,15 @@ function refreshToken(res,refresh_token){
   // write data to request body
   freq.write(JSON.stringify({"refresh_token": refresh_token}));
   freq.end();
+}
+
+function doSomething(res,refreshRequest){
+  console.log('is the refesh requst async: ',refreshRequest)
+  if (refreshRequest){
+    console.log('should be a successful refresh man')
+    res.cookie('access_token',refreshRequest, {httpOnly: true})
+  }
+  console.log('check cookies!')
 }
 
 app.listen(port,() => {

@@ -58,15 +58,17 @@ app.post('/login',async (req,res) => {
 })
 
 app.post('/token',async (req,res) => {
-  console.log('token recieved')
-  const header = req.body.refresh_token;
-  const refresh_token = header && header.split(' ')[1];
+  console.log('refresh token recieved', req.body.refresh_token)
+  const refresh_token = req.body.refresh_token;
 
   //Checks if refresh_token is valid, and sends an access token from information
   //obtained from the refresh token
   if (refresh_token){
     let user = await jwt.verify(refresh_token,process.env.REFRESH_TOKEN_SECRET_KEY)
     res.json({access_token: generateToken({email:user.email, admin: user.admin},process.env.ACCESS_TOKEN_SECRET_KEY,accessExp)})
+  } else {
+    console.log('refresh token rejected')
+    res.sendStatus(403)
   }
 })
 
